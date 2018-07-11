@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - lights - rect area light</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				background-color: #000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#info {
+				position: absolute;
+				top: 0px; width: 100%;
+				color: #ffffff;
+				padding: 5px;
+				font-family: Monospace;
+				font-size: 13px;
+				text-align: center;
+			}
+
+			a {
+				color: #ff0080;
+				text-decoration: none;
+			}
+
+			a:hover {
+				color: #0080ff;
+			}
+		</style>
+	</head>
+	<body>
+
+
+		<script src="three.js"></script>
+		<script src="js/lights/RectAreaLightUniformsLib.js"></script>
+		<script src="js/controls/OrbitControls.js"></script>
+		<script src="js/libs/dat.gui.min.js"></script>
+		<script src="js/libs/stats.min.js"></script>
+		<script src="js/Detector.js"></script>
+
+		<script>
+
+			var container = document.getElementById( 'container' );
+
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+
+			var renderer = new THREE.WebGLRenderer( { antialias: true } );
+			var camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 1000 );
+			var controls = new THREE.OrbitControls( camera, renderer.domElement );
+
+			var scene = new THREE.Scene();
+			var origin = new THREE.Object3D();
+
+			var matStdParams = {
+				roughness: 0.044676705160855, // calculated from shininess = 1000
+				metalness: 0.0
+			};
+
+			var amb = new THREE.AmbientLight( 0xffffff, 0.0 );
+
+			var rectLight;
+			var rectLightHelper;
+
+			var ray = new THREE.Raycaster();
+
+			var param = {};
+			var stats;
+
+			init();
+			animate();
+
+			function init() {
+
+				var gl = renderer.context;
+
+				// Check for float-RT support
+				// TODO (abelnation): figure out fall-back for float textures
+
+				if ( ! gl.getExtension( 'OES_texture_float' ) ) {
+
+					alert( 'OES_texture_float not supported' );
+					throw 'missing webgl extension';
+
+				}
+
+				if ( ! gl.getExtension('OES_texture_float_linear' ) ) {
+
+					alert( 'OES_texture_float_linear not supported' );
+					throw 'missing webgl extension';
+
+				}
+
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.shadowMap.enabled = true;
+				renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+				renderer.gammaInput = true;
+				renderer.gammaOutput = true;
+				document.body.appendChild( renderer.domElement );
+
+				stats = new Stats();
+				document.body.appendChild( stats.dom );
+
+				camera.position.set( 0, 20, 35 );
+
+				rectLight = new THREE.RectAreaLight( 0xffffff, 500, 10, 10 );
+				rectLight.position.set( 5, 5, 0 );
+
+				// TODO: ensure RectAreaLight handles target param correctly
+
+				rectLightHelper = new THREE.RectAreaLightHelper( rectLight );
+				scene.add( rectLightHelper );
+
+				// TODO (abelnation): rect light shadow
+
+				scene.add( camera );
+				scene.add( origin );
+
+				scene.add( amb );
+				scene.add( rectLight );
+
+				controls.update();
+
+				window.addEventListener( 'resize', onResize, false );
+
+			}
+
+			function onResize() {
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				camera.aspect = ( window.innerWidth / window.innerHeight );
+				camera.updateProjectionMatrix();
+
+			}
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				if ( param.motion ) {
+
+					update();
+					rectLight.update();
+					rectLightHelper.update();
+
+				}
+
+				renderer.render( scene, camera );
+
+				stats.update();
+
+			}
+
+			function update() {
+
+				var t = ( Date.now() / 1000 );
+
+				// move light in circle around center
+				// change light height with sine curve
+
+				var r = 15.0;
+
+				var lx = r * Math.cos( t );
+				var lz = r * Math.sin( t );
+
+				var ly = 5.0 + 5.0 * Math.sin( t / 3.0 );
+
+				rectLight.position.set( lx, ly, lz );
+				rectLight.lookAt( origin.position );
+
+			}
+
+			function render() {
+
+				rectLightHelper.update(); // required
+				rnd.render( scn, cam );
+
+			}
+
+		</script>
+	</body>
+</html>
